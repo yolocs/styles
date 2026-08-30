@@ -54,6 +54,56 @@ func TestUsageReturnsTwo(t *testing.T) {
 	}
 }
 
+func TestExportGhosttyWritesStdout(t *testing.T) {
+	path := writeTheme(t, readPlaceholder(t))
+	var stdout, stderr bytes.Buffer
+	code := Run(context.Background(), strings.NewReader(""), &stdout, &stderr,
+		[]string{"theme", "export", "ghostty", path})
+	if code != 0 || stderr.Len() != 0 {
+		t.Fatalf("code=%d stderr=%q", code, stderr.String())
+	}
+	if !strings.Contains(stdout.String(), "palette = 15=#FFFFFF") ||
+		!strings.Contains(stdout.String(), "cursor-color = #FFC777") {
+		t.Fatalf("stdout does not contain complete Ghostty theme:\n%s", stdout.String())
+	}
+}
+
+func TestExportGhosttyWritesNewOutputFile(t *testing.T) {
+	themePath := writeTheme(t, readPlaceholder(t))
+	outputPath := filepath.Join(t.TempDir(), "ghostty-theme")
+	var stdout, stderr bytes.Buffer
+	code := Run(context.Background(), strings.NewReader(""), &stdout, &stderr,
+		[]string{"theme", "export", "ghostty", "--output", outputPath, themePath})
+	if code != 0 || stdout.Len() != 0 || stderr.Len() != 0 {
+		t.Fatalf("code=%d stdout=%q stderr=%q", code, stdout.String(), stderr.String())
+	}
+	got, err := os.ReadFile(outputPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Contains(got, []byte("background = #222436")) {
+		t.Fatalf("output = %q, want background", got)
+	}
+}
+
+func TestExportGhosttyRefusesExistingOutputFile(t *testing.T) {
+	themePath := writeTheme(t, readPlaceholder(t))
+	outputPath := filepath.Join(t.TempDir(), "ghostty-theme")
+	if err := os.WriteFile(outputPath, []byte("original"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	var stdout, stderr bytes.Buffer
+	code := Run(context.Background(), strings.NewReader(""), &stdout, &stderr,
+		[]string{"theme", "export", "ghostty", "--output", outputPath, themePath})
+	if code != 1 || !strings.Contains(stderr.String(), "destination exists") {
+		t.Fatalf("code=%d stderr=%q", code, stderr.String())
+	}
+	got, _ := os.ReadFile(outputPath)
+	if string(got) != "original" {
+		t.Fatalf("existing output changed to %q", got)
+	}
+}
+
 func readPlaceholder(t *testing.T) []byte {
 	t.Helper()
 	data, err := os.ReadFile(filepath.Join("..", "..", "..", "themes", "yolodev", "placeholder.toml"))
