@@ -1,0 +1,36 @@
+format = "yolodev-terminal-theme"
+version = 1
+
+[theme]
+name = "yolodev"
+variant = "signal-grid"
+appearance = "dark"
+description = "A restrained cyberpunk theme with electric cyan signals and pixel-art warmth."
+
+[colors]
+background = "#0B1018"
+foreground = "#CAD5DF"
+cursor = "#73F4FF"
+cursor_text = "#0B1018"
+selection_background = "#2A3150"
+selection_foreground = "#E0EDF0"
+
+[palette.normal]
+black = "#121A24"
+red = "#E85D78"
+green = "#64D993"
+yellow = "#E7B84E"
+blue = "#4D9EEB"
+magenta = "#A873E2"
+cyan = "#37CFDC"
+white = "#B8C4CE"
+
+[palette.bright]
+black = "#52606F"
+red = "#FF7892"
+green = "#83F0AF"
+yellow = "#FFD36A"
+blue = "#73B7FF"
+magenta = "#D092FF"
+cyan = "#73F4FF"
+white = "#EDF5F7"
