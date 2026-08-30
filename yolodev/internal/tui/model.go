@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"charm.land/bubbles/v2/textinput"
 	tea "charm.land/bubbletea/v2"
 	"github.com/yolocs/styles/yolodev/internal/theme"
 )
@@ -18,25 +19,36 @@ func (r ColorRef) Key() string {
 }
 
 type Model struct {
-	Theme    theme.Theme
-	Clean    theme.Theme
-	Path     string
-	Width    int
-	Height   int
-	Layout   Layout
-	Regions  map[string]Region
-	Selected ColorRef
-	Picker   Picker
+	Theme       theme.Theme
+	Clean       theme.Theme
+	Path        string
+	Width       int
+	Height      int
+	Layout      Layout
+	Regions     map[string]Region
+	Selected    ColorRef
+	Picker      Picker
+	HexInput    textinput.Model
+	HexFocused  bool
+	Dialog      Dialog
+	PendingPath string
+	Status      string
 }
 
 func New(value theme.Theme, path string) Model {
 	value = theme.Normalize(value)
+	hexInput := textinput.New()
+	hexInput.Prompt = ""
+	hexInput.CharLimit = 7
+	hexInput.SetWidth(9)
+	hexInput.SetValue(value.Colors.Background)
 	model := Model{
 		Theme:    value,
 		Clean:    value,
 		Path:     path,
 		Regions:  make(map[string]Region),
 		Selected: ColorRef{Group: "colors", Name: "background"},
+		HexInput: hexInput,
 	}
 	model.syncPicker()
 	return model
@@ -51,11 +63,27 @@ func (m Model) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.Width = message.Width
 		m.Height = message.Height
-		m.Layout = LayoutFor(message.Width, message.Height)
-		m.Regions = m.Layout.Regions
+		m.refreshRegions()
+		return m, nil
+	case fileLoadedMsg:
+		return m.handleFileLoaded(message), nil
+	case fileSavedMsg:
+		return m.handleFileSaved(message), nil
+	case fileExportedMsg:
+		return m.handleFileExported(message), nil
+	}
+
+	if m.Dialog.Kind != NoDialog {
+		return m.updateDialog(message)
+	}
+	if m.HexFocused {
+		return m.updateHex(message)
+	}
+
+	switch message := message.(type) {
 	case tea.MouseClickMsg:
 		if message.Button == tea.MouseLeft {
-			m.handleClick(message.X, message.Y)
+			return m, m.handleClick(message.X, message.Y)
 		}
 	case tea.MouseMotionMsg:
 		if message.Button == tea.MouseLeft {
@@ -67,6 +95,19 @@ func (m Model) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 			m.Picker.StartHex = ""
 		}
 	case tea.KeyPressMsg:
+		switch message.Keystroke() {
+		case "ctrl+s":
+			return m, saveThemeCmd(m.Path, m.Theme)
+		case "ctrl+q":
+			if m.Dirty() {
+				m.openDialog(ConfirmQuitDialog)
+				return m, nil
+			}
+			return m, tea.Quit
+		case "tab":
+			m.beginHexEdit()
+			return m, nil
+		}
 		if message.Code == tea.KeyEscape && m.Picker.Drag != DragNone {
 			m.setColor(m.Picker.StartRef, m.Picker.StartHex)
 			m.Selected = m.Picker.StartRef
@@ -74,14 +115,19 @@ func (m Model) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 			m.Picker.StartHex = ""
 			m.syncPicker()
 		}
+		if message.Code == tea.KeyLeft || message.Code == tea.KeyRight || message.Code == tea.KeyUp || message.Code == tea.KeyDown {
+			m.adjustPicker(message.Code)
+		}
 	}
 	return m, nil
 }
 
 func (m Model) View() tea.View {
-	content := fmt.Sprintf("yolodev — %s", m.Path)
+	content := renderMain(m)
 	if m.Width < MinimumWidth || m.Height < MinimumHeight {
 		content = fmt.Sprintf("yolodev requires %dx%d; current terminal is %dx%d\nCtrl+Q to quit", MinimumWidth, MinimumHeight, m.Width, m.Height)
+	} else if m.Dialog.Kind != NoDialog {
+		content = renderDialog(m)
 	}
 	view := tea.NewView(content)
 	view.AltScreen = true
@@ -101,23 +147,39 @@ func (m Model) Dirty() bool {
 	return theme.Normalize(m.Theme) != theme.Normalize(m.Clean)
 }
 
-func (m *Model) handleClick(x, y int) {
+func (m *Model) handleClick(x, y int) tea.Cmd {
+	if region, ok := m.Regions["action:import"]; ok && region.Contains(x, y) {
+		m.openDialog(ImportDialog)
+		return nil
+	}
+	if region, ok := m.Regions["action:save"]; ok && region.Contains(x, y) {
+		return saveThemeCmd(m.Path, m.Theme)
+	}
+	if region, ok := m.Regions["action:export"]; ok && region.Contains(x, y) {
+		m.openDialog(ExportDialog)
+		return nil
+	}
+	if region, ok := m.Regions["hex"]; ok && region.Contains(x, y) {
+		m.beginHexEdit()
+		return nil
+	}
 	for key, region := range m.Regions {
 		if strings.HasPrefix(key, "color:") && region.Contains(x, y) {
 			m.Selected = parseColorRef(strings.TrimPrefix(key, "color:"))
 			m.syncPicker()
-			return
+			return nil
 		}
 	}
 	if region, ok := m.Regions["sv"]; ok && region.Contains(x, y) {
 		m.beginDrag(DragSV)
 		m.applySV(region, x, y)
-		return
+		return nil
 	}
 	if region, ok := m.Regions["hue"]; ok && region.Contains(x, y) {
 		m.beginDrag(DragHue)
 		m.applyHue(region, x)
 	}
+	return nil
 }
 
 func (m *Model) handleDrag(x, y int) {
@@ -151,6 +213,68 @@ func (m *Model) syncPicker() {
 		return
 	}
 	m.Picker.HSV = theme.RGBToHSV(color)
+	if !m.HexFocused {
+		m.HexInput.SetValue(color.Hex())
+	}
+}
+
+func (m *Model) refreshRegions() {
+	m.Layout = LayoutFor(m.Width, m.Height)
+	m.Regions = make(map[string]Region, len(m.Layout.Regions)+3)
+	for key, region := range m.Layout.Regions {
+		m.Regions[key] = region
+	}
+	if m.Dialog.Kind != NoDialog {
+		m.installDialogRegions()
+	}
+}
+
+func (m *Model) beginHexEdit() {
+	m.HexInput.SetValue(m.color(m.Selected))
+	m.HexInput.Focus()
+	m.HexFocused = true
+}
+
+func (m Model) updateHex(message tea.Msg) (tea.Model, tea.Cmd) {
+	if key, ok := message.(tea.KeyPressMsg); ok {
+		switch key.Code {
+		case tea.KeyEnter:
+			color, err := theme.ParseHex(m.HexInput.Value())
+			if err != nil {
+				m.Status = err.Error()
+				return m, nil
+			}
+			m.setColor(m.Selected, color.Hex())
+			m.HexInput.Blur()
+			m.HexFocused = false
+			m.Status = "color updated"
+			m.syncPicker()
+			return m, nil
+		case tea.KeyEscape:
+			m.HexInput.SetValue(m.color(m.Selected))
+			m.HexInput.Blur()
+			m.HexFocused = false
+			return m, nil
+		}
+	}
+	var command tea.Cmd
+	m.HexInput, command = m.HexInput.Update(message)
+	return m, command
+}
+
+func (m *Model) adjustPicker(code rune) {
+	switch code {
+	case tea.KeyLeft:
+		m.Picker.HSV.H -= 1
+	case tea.KeyRight:
+		m.Picker.HSV.H += 1
+	case tea.KeyUp:
+		m.Picker.HSV.V += 0.01
+	case tea.KeyDown:
+		m.Picker.HSV.V -= 0.01
+	}
+	m.setColor(m.Selected, theme.HSVToRGB(m.Picker.HSV).Hex())
+	m.syncPicker()
 }
 
 func parseColorRef(value string) ColorRef {

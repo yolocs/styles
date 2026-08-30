@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/yolocs/styles/yolodev/internal/theme"
 )
 
 func TestValidateCommandReturnsZeroWithWarnings(t *testing.T) {
@@ -101,6 +103,29 @@ func TestExportGhosttyRefusesExistingOutputFile(t *testing.T) {
 	got, _ := os.ReadFile(outputPath)
 	if string(got) != "original" {
 		t.Fatalf("existing output changed to %q", got)
+	}
+}
+
+func TestEditCommandLoadsExplicitThemeAndRunsEditor(t *testing.T) {
+	path := writeTheme(t, readPlaceholder(t))
+	originalRunEditor := runEditor
+	t.Cleanup(func() { runEditor = originalRunEditor })
+	var gotTheme theme.Theme
+	var gotPath string
+	runEditor = func(value theme.Theme, path string) error {
+		gotTheme = value
+		gotPath = path
+		return nil
+	}
+
+	var stdout, stderr bytes.Buffer
+	code := Run(context.Background(), strings.NewReader(""), &stdout, &stderr,
+		[]string{"theme", "edit", path})
+	if code != 0 || stderr.Len() != 0 {
+		t.Fatalf("code=%d stderr=%q", code, stderr.String())
+	}
+	if gotPath != path || gotTheme.Theme.Name != "yolodev" {
+		t.Fatalf("editor got path=%q theme=%#v", gotPath, gotTheme.Theme)
 	}
 }
 

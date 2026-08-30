@@ -11,11 +11,21 @@ import (
 	"github.com/yolocs/styles/yolodev/internal/fileutil"
 	"github.com/yolocs/styles/yolodev/internal/ghostty"
 	"github.com/yolocs/styles/yolodev/internal/theme"
+	"github.com/yolocs/styles/yolodev/internal/tui"
 )
+
+var runEditor = tui.Run
 
 func Run(ctx context.Context, stdin io.Reader, stdout, stderr io.Writer, args []string) int {
 	_ = ctx
 	_ = stdin
+	if len(args) >= 2 && len(args) <= 3 && args[0] == "theme" && args[1] == "edit" {
+		path := "themes/yolodev/placeholder.toml"
+		if len(args) == 3 {
+			path = args[2]
+		}
+		return editTheme(stdout, stderr, path)
+	}
 	if len(args) == 3 && args[0] == "theme" && args[1] == "validate" {
 		return validateTheme(stdout, stderr, args[2])
 	}
@@ -24,6 +34,41 @@ func Run(ctx context.Context, stdin io.Reader, stdout, stderr io.Writer, args []
 	}
 	printUsage(stderr)
 	return 2
+}
+
+func editTheme(stdout, stderr io.Writer, path string) int {
+	file, err := os.Open(path)
+	if err != nil {
+		fmt.Fprintf(stderr, "%s: ERROR: open terminal theme: %v\n", path, err)
+		return 1
+	}
+	value, decodeErr := theme.Decode(file)
+	closeErr := file.Close()
+	if decodeErr != nil {
+		fmt.Fprintf(stderr, "%s: ERROR: %v\n", path, decodeErr)
+		return 1
+	}
+	if closeErr != nil {
+		fmt.Fprintf(stderr, "%s: ERROR: close terminal theme: %v\n", path, closeErr)
+		return 1
+	}
+
+	diagnostics := theme.Validate(value)
+	for _, diagnostic := range diagnostics {
+		output := stdout
+		if diagnostic.Severity == theme.Error {
+			output = stderr
+		}
+		fmt.Fprintf(output, "%s:%s: %s: %s\n", path, diagnostic.Field, strings.ToUpper(string(diagnostic.Severity)), diagnostic.Message)
+	}
+	if theme.HasErrors(diagnostics) {
+		return 1
+	}
+	if err := runEditor(theme.Normalize(value), path); err != nil {
+		fmt.Fprintf(stderr, "%s: ERROR: %v\n", path, err)
+		return 1
+	}
+	return 0
 }
 
 func exportGhostty(stdout, stderr io.Writer, args []string) int {
