@@ -11,6 +11,8 @@ import (
 )
 
 func TestRenderPlaceholder(t *testing.T) {
+	t.Parallel()
+
 	value := loadPlaceholder(t)
 	var got bytes.Buffer
 	if err := Render(&got, value); err != nil {
@@ -26,6 +28,8 @@ func TestRenderPlaceholder(t *testing.T) {
 }
 
 func TestRenderRejectsInvalidTheme(t *testing.T) {
+	t.Parallel()
+
 	value := loadPlaceholder(t)
 	value.Version = 2
 	var output bytes.Buffer

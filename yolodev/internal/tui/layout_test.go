@@ -3,16 +3,34 @@ package tui
 import "testing"
 
 func TestRegionContainsBoundary(t *testing.T) {
+	t.Parallel()
+
 	region := Region{X: 10, Y: 5, Width: 20, Height: 8}
-	if !region.Contains(10, 5) || !region.Contains(29, 12) {
-		t.Fatal("Region.Contains rejected an inclusive boundary cell")
+	tests := []struct {
+		name       string
+		x, y       int
+		wantInside bool
+	}{
+		{name: "upper left", x: 10, y: 5, wantInside: true},
+		{name: "lower right", x: 29, y: 12, wantInside: true},
+		{name: "past right", x: 30, y: 12, wantInside: false},
+		{name: "past bottom", x: 29, y: 13, wantInside: false},
+		{name: "before left", x: 9, y: 5, wantInside: false},
 	}
-	if region.Contains(30, 12) || region.Contains(29, 13) || region.Contains(9, 5) {
-		t.Fatal("Region.Contains accepted a cell outside the region")
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+
+			if got := region.Contains(test.x, test.y); got != test.wantInside {
+				t.Fatalf("Region.Contains(%d, %d) = %v, want %v", test.x, test.y, got, test.wantInside)
+			}
+		})
 	}
 }
 
 func TestLayoutForWideTerminalIncludesPickerAndColors(t *testing.T) {
+	t.Parallel()
+
 	layout := LayoutFor(120, 36)
 	if layout.Small {
 		t.Fatal("LayoutFor(120, 36) marked terminal small")
@@ -28,10 +46,22 @@ func TestLayoutForWideTerminalIncludesPickerAndColors(t *testing.T) {
 }
 
 func TestLayoutForSmallTerminal(t *testing.T) {
-	if got := LayoutFor(99, 28); !got.Small {
-		t.Fatal("99-column terminal must use small layout")
+	t.Parallel()
+
+	tests := []struct {
+		name          string
+		width, height int
+	}{
+		{name: "too narrow", width: 99, height: 28},
+		{name: "too short", width: 100, height: 27},
 	}
-	if got := LayoutFor(100, 27); !got.Small {
-		t.Fatal("27-row terminal must use small layout")
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+
+			if got := LayoutFor(test.width, test.height); !got.Small {
+				t.Fatalf("LayoutFor(%d, %d) did not use small layout", test.width, test.height)
+			}
+		})
 	}
 }

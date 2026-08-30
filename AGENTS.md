@@ -48,6 +48,9 @@ style domains until a concrete domain needs them.
 - Keep the Ghostty renderer pure: validated theme in, bytes out.
 - Model TUI interactions as testable state transitions; terminal rendering and
   filesystem effects stay at the edges.
+- Call `t.Parallel()` in tests and subtests that do not share mutable process
+  state. Prefer named table-driven tests when several cases exercise the same
+  behavior; keep unrelated scenarios separate.
 - Return contextual errors. Do not panic for invalid input or ordinary I/O
   failures.
 

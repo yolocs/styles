@@ -11,41 +11,51 @@ import (
 	"github.com/yolocs/styles/yolodev/internal/theme"
 )
 
-func TestValidateCommandReturnsZeroWithWarnings(t *testing.T) {
-	input := readPlaceholder(t)
-	input = bytes.Replace(input, []byte(`foreground = "#C8D3F5"`), []byte(`foreground = "#222436"`), 1)
-	path := writeTheme(t, input)
+func TestValidateCommand(t *testing.T) {
+	t.Parallel()
 
-	var stdout, stderr bytes.Buffer
-	code := Run(context.Background(), strings.NewReader(""), &stdout, &stderr,
-		[]string{"theme", "validate", path})
-	if code != 0 {
-		t.Fatalf("Run() code = %d, want 0; stderr=%q", code, stderr.String())
+	tests := []struct {
+		name                   string
+		old, new               []byte
+		wantCode               int
+		wantStdout, wantStderr string
+	}{
+		{
+			name:       "returns zero with warnings",
+			old:        []byte(`foreground = "#C8D3F5"`),
+			new:        []byte(`foreground = "#222436"`),
+			wantCode:   0,
+			wantStdout: ":colors.foreground: WARNING:",
+		},
+		{
+			name:       "returns one for invalid theme",
+			old:        []byte("version = 1"),
+			new:        []byte("version = 2"),
+			wantCode:   1,
+			wantStderr: ":version: ERROR:",
+		},
 	}
-	if !strings.Contains(stdout.String(), ":colors.foreground: WARNING:") {
-		t.Fatalf("stdout = %q, want foreground warning", stdout.String())
-	}
-	if stderr.Len() != 0 {
-		t.Fatalf("stderr = %q, want empty", stderr.String())
-	}
-}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
 
-func TestValidateCommandReturnsOneForInvalidTheme(t *testing.T) {
-	input := bytes.Replace(readPlaceholder(t), []byte("version = 1"), []byte("version = 2"), 1)
-	path := writeTheme(t, input)
-
-	var stdout, stderr bytes.Buffer
-	code := Run(context.Background(), strings.NewReader(""), &stdout, &stderr,
-		[]string{"theme", "validate", path})
-	if code != 1 {
-		t.Fatalf("Run() code = %d, want 1", code)
-	}
-	if !strings.Contains(stderr.String(), ":version: ERROR:") {
-		t.Fatalf("stderr = %q, want version error", stderr.String())
+			input := bytes.Replace(readPlaceholder(t), test.old, test.new, 1)
+			path := writeTheme(t, input)
+			var stdout, stderr bytes.Buffer
+			code := Run(context.Background(), strings.NewReader(""), &stdout, &stderr,
+				[]string{"theme", "validate", path})
+			if code != test.wantCode {
+				t.Fatalf("Run() code = %d, want %d", code, test.wantCode)
+			}
+			assertOutput(t, "stdout", stdout.String(), test.wantStdout)
+			assertOutput(t, "stderr", stderr.String(), test.wantStderr)
+		})
 	}
 }
 
 func TestUsageReturnsTwo(t *testing.T) {
+	t.Parallel()
+
 	var stdout, stderr bytes.Buffer
 	code := Run(context.Background(), strings.NewReader(""), &stdout, &stderr, nil)
 	if code != 2 {
@@ -57,6 +67,8 @@ func TestUsageReturnsTwo(t *testing.T) {
 }
 
 func TestExportGhosttyWritesStdout(t *testing.T) {
+	t.Parallel()
+
 	path := writeTheme(t, readPlaceholder(t))
 	var stdout, stderr bytes.Buffer
 	code := Run(context.Background(), strings.NewReader(""), &stdout, &stderr,
@@ -70,69 +82,83 @@ func TestExportGhosttyWritesStdout(t *testing.T) {
 	}
 }
 
-func TestExportGhosttyWritesNewOutputFile(t *testing.T) {
-	themePath := writeTheme(t, readPlaceholder(t))
-	outputPath := filepath.Join(t.TempDir(), "ghostty-theme")
-	var stdout, stderr bytes.Buffer
-	code := Run(context.Background(), strings.NewReader(""), &stdout, &stderr,
-		[]string{"theme", "export", "--format", "ghostty", "--output", outputPath, themePath})
-	if code != 0 || stdout.Len() != 0 || stderr.Len() != 0 {
-		t.Fatalf("code=%d stdout=%q stderr=%q", code, stdout.String(), stderr.String())
+func TestExportGhosttyToFile(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name       string
+		initial    string
+		wantCode   int
+		wantStderr string
+		wantOutput string
+	}{
+		{name: "writes new file", wantCode: 0, wantOutput: "background = #222436"},
+		{name: "refuses existing file", initial: "original", wantCode: 1, wantStderr: "destination exists", wantOutput: "original"},
 	}
-	got, err := os.ReadFile(outputPath)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !bytes.Contains(got, []byte("background = #222436")) {
-		t.Fatalf("output = %q, want background", got)
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+
+			themePath := writeTheme(t, readPlaceholder(t))
+			outputPath := filepath.Join(t.TempDir(), "ghostty-theme")
+			if test.initial != "" {
+				if err := os.WriteFile(outputPath, []byte(test.initial), 0o600); err != nil {
+					t.Fatal(err)
+				}
+			}
+			var stdout, stderr bytes.Buffer
+			code := Run(context.Background(), strings.NewReader(""), &stdout, &stderr,
+				[]string{"theme", "export", "--format", "ghostty", "--output", outputPath, themePath})
+			if code != test.wantCode || stdout.Len() != 0 {
+				t.Fatalf("code=%d stdout=%q stderr=%q", code, stdout.String(), stderr.String())
+			}
+			assertOutput(t, "stderr", stderr.String(), test.wantStderr)
+			got, err := os.ReadFile(outputPath)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !strings.Contains(string(got), test.wantOutput) {
+				t.Fatalf("output = %q, want %q", got, test.wantOutput)
+			}
+		})
 	}
 }
 
-func TestExportGhosttyRefusesExistingOutputFile(t *testing.T) {
-	themePath := writeTheme(t, readPlaceholder(t))
-	outputPath := filepath.Join(t.TempDir(), "ghostty-theme")
-	if err := os.WriteFile(outputPath, []byte("original"), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	var stdout, stderr bytes.Buffer
-	code := Run(context.Background(), strings.NewReader(""), &stdout, &stderr,
-		[]string{"theme", "export", "--format", "ghostty", "--output", outputPath, themePath})
-	if code != 1 || !strings.Contains(stderr.String(), "destination exists") {
-		t.Fatalf("code=%d stderr=%q", code, stderr.String())
-	}
-	got, _ := os.ReadFile(outputPath)
-	if string(got) != "original" {
-		t.Fatalf("existing output changed to %q", got)
-	}
-}
+func TestExportRejectsInvalidFormat(t *testing.T) {
+	t.Parallel()
 
-func TestExportRequiresFormat(t *testing.T) {
-	themePath := writeTheme(t, readPlaceholder(t))
-	var stdout, stderr bytes.Buffer
-	code := Run(context.Background(), strings.NewReader(""), &stdout, &stderr,
-		[]string{"theme", "export", themePath})
-	if code != 2 {
-		t.Fatalf("Run() code = %d, want 2", code)
+	tests := []struct {
+		name, format string
+		wantCode     int
+		wantStderr   string
+	}{
+		{name: "missing format", wantCode: 2, wantStderr: "format"},
+		{name: "unknown format", format: "unknown", wantCode: 1, wantStderr: `unsupported export format "unknown"`},
 	}
-	if !strings.Contains(stderr.String(), "format") {
-		t.Fatalf("stderr = %q, want missing format error", stderr.String())
-	}
-}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
 
-func TestExportRejectsUnknownFormat(t *testing.T) {
-	themePath := writeTheme(t, readPlaceholder(t))
-	var stdout, stderr bytes.Buffer
-	code := Run(context.Background(), strings.NewReader(""), &stdout, &stderr,
-		[]string{"theme", "export", "--format", "unknown", themePath})
-	if code != 1 {
-		t.Fatalf("Run() code = %d, want 1", code)
-	}
-	if !strings.Contains(stderr.String(), `unsupported export format "unknown"`) {
-		t.Fatalf("stderr = %q, want unsupported format error", stderr.String())
+			themePath := writeTheme(t, readPlaceholder(t))
+			args := []string{"theme", "export"}
+			if test.format != "" {
+				args = append(args, "--format", test.format)
+			}
+			args = append(args, themePath)
+			var stdout, stderr bytes.Buffer
+			code := Run(context.Background(), strings.NewReader(""), &stdout, &stderr, args)
+			if code != test.wantCode {
+				t.Fatalf("Run() code = %d, want %d", code, test.wantCode)
+			}
+			if !strings.Contains(stderr.String(), test.wantStderr) {
+				t.Fatalf("stderr = %q, want %q", stderr.String(), test.wantStderr)
+			}
+		})
 	}
 }
 
 func TestEditCommandLoadsExplicitThemeAndRunsEditor(t *testing.T) {
+	// This test replaces package-level state and must remain serial.
 	path := writeTheme(t, readPlaceholder(t))
 	originalRunEditor := runEditor
 	t.Cleanup(func() { runEditor = originalRunEditor })
@@ -171,4 +197,14 @@ func writeTheme(t *testing.T, data []byte) string {
 		t.Fatal(err)
 	}
 	return path
+}
+
+func assertOutput(t *testing.T, name, got, want string) {
+	t.Helper()
+	if want == "" && got != "" {
+		t.Fatalf("%s = %q, want empty", name, got)
+	}
+	if want != "" && !strings.Contains(got, want) {
+		t.Fatalf("%s = %q, want %q", name, got, want)
+	}
 }

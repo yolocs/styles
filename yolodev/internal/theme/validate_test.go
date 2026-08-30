@@ -7,6 +7,8 @@ import (
 )
 
 func TestValidateAcceptsPlaceholder(t *testing.T) {
+	t.Parallel()
+
 	value, err := Decode(strings.NewReader(validTOML))
 	if err != nil {
 		t.Fatal(err)
@@ -18,6 +20,8 @@ func TestValidateAcceptsPlaceholder(t *testing.T) {
 }
 
 func TestValidateRejectsUnsupportedVersion(t *testing.T) {
+	t.Parallel()
+
 	value := decodedValidTheme(t)
 	value.Version = 2
 	got := Validate(value)
@@ -26,37 +30,93 @@ func TestValidateRejectsUnsupportedVersion(t *testing.T) {
 	}
 }
 
-func TestValidateRejectsMissingMetadataAndMalformedColor(t *testing.T) {
-	value := decodedValidTheme(t)
-	value.Theme.Description = " "
-	value.Palette.Normal.Red = "red"
-	got := Validate(value)
-	if !hasDiagnostic(got, Error, "theme.description") {
-		t.Errorf("diagnostics = %#v, want description error", got)
+func TestValidateRejectsInvalidField(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name   string
+		field  string
+		mutate func(*Theme)
+	}{
+		{
+			name:  "missing description",
+			field: "theme.description",
+			mutate: func(value *Theme) {
+				value.Theme.Description = " "
+			},
+		},
+		{
+			name:  "malformed color",
+			field: "palette.normal.red",
+			mutate: func(value *Theme) {
+				value.Palette.Normal.Red = "red"
+			},
+		},
 	}
-	if !hasDiagnostic(got, Error, "palette.normal.red") {
-		t.Errorf("diagnostics = %#v, want red error", got)
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+
+			value := decodedValidTheme(t)
+			test.mutate(&value)
+			got := Validate(value)
+			if !hasDiagnostic(got, Error, test.field) {
+				t.Errorf("diagnostics = %#v, want error for %s", got, test.field)
+			}
+		})
 	}
 }
 
 func TestValidateContrastWarningsDoNotBecomeErrors(t *testing.T) {
-	value := decodedValidTheme(t)
-	value.Colors.Foreground = value.Colors.Background
-	value.Colors.SelectionForeground = value.Colors.SelectionBackground
-	value.Colors.Cursor = value.Colors.Background
+	t.Parallel()
 
-	got := Validate(value)
-	for _, field := range []string{"colors.foreground", "colors.selection_foreground", "colors.cursor"} {
-		if !hasDiagnostic(got, Warning, field) {
-			t.Errorf("diagnostics = %#v, want warning for %s", got, field)
-		}
+	tests := []struct {
+		name   string
+		field  string
+		mutate func(*Theme)
+	}{
+		{
+			name:  "foreground and background",
+			field: "colors.foreground",
+			mutate: func(value *Theme) {
+				value.Colors.Foreground = value.Colors.Background
+			},
+		},
+		{
+			name:  "selection colors",
+			field: "colors.selection_foreground",
+			mutate: func(value *Theme) {
+				value.Colors.SelectionForeground = value.Colors.SelectionBackground
+			},
+		},
+		{
+			name:  "cursor and background",
+			field: "colors.cursor",
+			mutate: func(value *Theme) {
+				value.Colors.Cursor = value.Colors.Background
+			},
+		},
 	}
-	if HasErrors(got) {
-		t.Fatalf("contrast diagnostics unexpectedly contain errors: %#v", got)
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+
+			value := decodedValidTheme(t)
+			test.mutate(&value)
+			got := Validate(value)
+			if !hasDiagnostic(got, Warning, test.field) {
+				t.Errorf("diagnostics = %#v, want warning for %s", got, test.field)
+			}
+			if HasErrors(got) {
+				t.Fatalf("contrast diagnostics unexpectedly contain errors: %#v", got)
+			}
+		})
 	}
 }
 
 func TestContrastRatioBlackAndWhite(t *testing.T) {
+	t.Parallel()
+
 	got := ContrastRatio(RGB{}, RGB{R: 255, G: 255, B: 255})
 	if math.Abs(got-21) > 0.001 {
 		t.Fatalf("ContrastRatio(black, white) = %f, want 21", got)

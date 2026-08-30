@@ -10,6 +10,8 @@ import (
 )
 
 func TestRegistryExportsWithRequestedFormat(t *testing.T) {
+	t.Parallel()
+
 	registry := NewRegistry()
 	err := registry.Register("custom", func(w io.Writer, value theme.Theme) error {
 		_, writeErr := io.WriteString(w, "custom:"+value.Theme.Name)
@@ -30,6 +32,8 @@ func TestRegistryExportsWithRequestedFormat(t *testing.T) {
 }
 
 func TestRegistryRejectsUnknownFormatWithoutWriting(t *testing.T) {
+	t.Parallel()
+
 	registry := NewRegistry()
 	var output bytes.Buffer
 	err := registry.Export("missing", &output, theme.Theme{})
@@ -42,6 +46,8 @@ func TestRegistryRejectsUnknownFormatWithoutWriting(t *testing.T) {
 }
 
 func TestRegistryRejectsDuplicateFormat(t *testing.T) {
+	t.Parallel()
+
 	registry := NewRegistry()
 	render := func(io.Writer, theme.Theme) error { return nil }
 	if err := registry.Register("custom", render); err != nil {
@@ -52,17 +58,26 @@ func TestRegistryRejectsDuplicateFormat(t *testing.T) {
 	}
 }
 
-func TestRegistryRejectsEmptyFormat(t *testing.T) {
-	registry := NewRegistry()
-	render := func(io.Writer, theme.Theme) error { return nil }
-	if err := registry.Register("", render); err == nil {
-		t.Fatal("Register() empty format returned nil error")
-	}
-}
+func TestRegistryRejectsInvalidRegistration(t *testing.T) {
+	t.Parallel()
 
-func TestRegistryRejectsNilRenderer(t *testing.T) {
-	registry := NewRegistry()
-	if err := registry.Register("custom", nil); err == nil {
-		t.Fatal("Register() nil renderer returned nil error")
+	render := func(io.Writer, theme.Theme) error { return nil }
+	tests := []struct {
+		name   string
+		format string
+		render func(io.Writer, theme.Theme) error
+	}{
+		{name: "empty format", format: "", render: render},
+		{name: "nil renderer", format: "custom", render: nil},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+
+			registry := NewRegistry()
+			if err := registry.Register(test.format, test.render); err == nil {
+				t.Fatal("Register() returned nil error")
+			}
+		})
 	}
 }

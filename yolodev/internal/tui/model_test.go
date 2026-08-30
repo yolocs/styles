@@ -8,6 +8,8 @@ import (
 )
 
 func TestMouseClickAndDragUpdateSelectedColor(t *testing.T) {
+	t.Parallel()
+
 	model := testModel(t)
 	model.Regions = map[string]Region{
 		"sv":  {X: 10, Y: 5, Width: 11, Height: 11},
@@ -33,6 +35,8 @@ func TestMouseClickAndDragUpdateSelectedColor(t *testing.T) {
 }
 
 func TestEscapeCancelsActiveDrag(t *testing.T) {
+	t.Parallel()
+
 	model := testModel(t)
 	model.Regions = map[string]Region{"hue": {X: 10, Y: 5, Width: 11, Height: 1}}
 	original := model.Theme.Colors.Background
@@ -44,6 +48,8 @@ func TestEscapeCancelsActiveDrag(t *testing.T) {
 }
 
 func TestClickingSwatchChangesSelection(t *testing.T) {
+	t.Parallel()
+
 	model := testModel(t)
 	model.Regions = map[string]Region{
 		"color:palette.normal.red": {X: 2, Y: 2, Width: 3, Height: 1},
@@ -55,6 +61,8 @@ func TestClickingSwatchChangesSelection(t *testing.T) {
 }
 
 func TestWindowSizeRecalculatesLayoutAndViewEnablesMouse(t *testing.T) {
+	t.Parallel()
+
 	model := updateModel(t, testModel(t), tea.WindowSizeMsg{Width: 120, Height: 36})
 	if model.Width != 120 || model.Height != 36 || len(model.Regions) == 0 {
 		t.Fatalf("window update = %dx%d, regions=%d", model.Width, model.Height, len(model.Regions))
@@ -66,6 +74,8 @@ func TestWindowSizeRecalculatesLayoutAndViewEnablesMouse(t *testing.T) {
 }
 
 func TestDirtyComparesCurrentThemeToCleanSnapshot(t *testing.T) {
+	t.Parallel()
+
 	model := testModel(t)
 	if model.Dirty() {
 		t.Fatal("new model is dirty")

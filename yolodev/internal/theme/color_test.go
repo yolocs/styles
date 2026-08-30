@@ -6,6 +6,8 @@ import (
 )
 
 func TestParseHex(t *testing.T) {
+	t.Parallel()
+
 	got, err := ParseHex("#82AAFF")
 	if err != nil {
 		t.Fatal(err)
@@ -17,25 +19,48 @@ func TestParseHex(t *testing.T) {
 }
 
 func TestParseHexRejectsNonCanonicalInput(t *testing.T) {
-	for _, input := range []string{"82AAFF", "#fff", "#GGAAFF", "#82AAFF00"} {
-		if _, err := ParseHex(input); err == nil {
-			t.Errorf("ParseHex(%q) error = nil", input)
-		}
+	t.Parallel()
+
+	tests := []struct {
+		name, input string
+	}{
+		{name: "missing hash", input: "82AAFF"},
+		{name: "short form", input: "#fff"},
+		{name: "non-hex digits", input: "#GGAAFF"},
+		{name: "alpha channel", input: "#82AAFF00"},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+
+			if _, err := ParseHex(test.input); err == nil {
+				t.Errorf("ParseHex(%q) error = nil", test.input)
+			}
+		})
 	}
 }
 
 func TestHSVRoundTrip(t *testing.T) {
-	inputs := []RGB{
-		{R: 0, G: 0, B: 0},
-		{R: 255, G: 255, B: 255},
-		{R: 255, G: 0, B: 0},
-		{R: 130, G: 170, B: 255},
+	t.Parallel()
+
+	tests := []struct {
+		name  string
+		input RGB
+	}{
+		{name: "black", input: RGB{R: 0, G: 0, B: 0}},
+		{name: "white", input: RGB{R: 255, G: 255, B: 255}},
+		{name: "red", input: RGB{R: 255, G: 0, B: 0}},
+		{name: "blue", input: RGB{R: 130, G: 170, B: 255}},
 	}
-	for _, input := range inputs {
-		got := HSVToRGB(RGBToHSV(input))
-		if channelDistance(got, input) > 1 {
-			t.Errorf("HSV round trip of %#v = %#v", input, got)
-		}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+
+			got := HSVToRGB(RGBToHSV(test.input))
+			if channelDistance(got, test.input) > 1 {
+				t.Errorf("HSV round trip of %#v = %#v", test.input, got)
+			}
+		})
 	}
 }
 

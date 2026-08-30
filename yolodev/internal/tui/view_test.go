@@ -9,6 +9,8 @@ import (
 )
 
 func TestViewContainsPreviewFirstControlsAndRoles(t *testing.T) {
+	t.Parallel()
+
 	model := updateModel(t, testModel(t), tea.WindowSizeMsg{Width: 120, Height: 36})
 	content := model.View().Content
 	for _, text := range []string{
@@ -22,6 +24,8 @@ func TestViewContainsPreviewFirstControlsAndRoles(t *testing.T) {
 }
 
 func TestViewNeverExceedsTerminalWidth(t *testing.T) {
+	t.Parallel()
+
 	model := updateModel(t, testModel(t), tea.WindowSizeMsg{Width: 100, Height: 28})
 	for index, line := range strings.Split(model.View().Content, "\n") {
 		if width := lipgloss.Width(line); width > 100 {
@@ -31,6 +35,8 @@ func TestViewNeverExceedsTerminalWidth(t *testing.T) {
 }
 
 func TestViewShowsDirtyMarkerAndDiagnostics(t *testing.T) {
+	t.Parallel()
+
 	model := updateModel(t, testModel(t), tea.WindowSizeMsg{Width: 120, Height: 36})
 	model.Theme.Colors.Foreground = model.Theme.Colors.Background
 	content := model.View().Content
@@ -40,6 +46,8 @@ func TestViewShowsDirtyMarkerAndDiagnostics(t *testing.T) {
 }
 
 func TestSmallViewReportsRequiredSize(t *testing.T) {
+	t.Parallel()
+
 	model := updateModel(t, testModel(t), tea.WindowSizeMsg{Width: 80, Height: 20})
 	if got := model.View().Content; !strings.Contains(got, "requires 100x28") {
 		t.Fatalf("small view = %q", got)

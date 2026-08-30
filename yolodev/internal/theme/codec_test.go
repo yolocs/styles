@@ -45,6 +45,8 @@ white = "#FFFFFF"
 `
 
 func TestDecodeValidTheme(t *testing.T) {
+	t.Parallel()
+
 	got, err := Decode(strings.NewReader(validTOML))
 	if err != nil {
 		t.Fatal(err)
@@ -57,21 +59,31 @@ func TestDecodeValidTheme(t *testing.T) {
 	}
 }
 
-func TestDecodeRejectsUnknownField(t *testing.T) {
-	input := strings.Replace(validTOML, "appearance = \"dark\"", "appearance = \"dark\"\nunknown = true", 1)
-	if _, err := Decode(strings.NewReader(input)); err == nil {
-		t.Fatal("Decode() error = nil, want unknown-field error")
-	}
-}
+func TestDecodeRejectsInvalidDocument(t *testing.T) {
+	t.Parallel()
 
-func TestDecodeRejectsDuplicateField(t *testing.T) {
-	input := strings.Replace(validTOML, "version = 1", "version = 1\nversion = 1", 1)
-	if _, err := Decode(strings.NewReader(input)); err == nil {
-		t.Fatal("Decode() error = nil, want duplicate-field error")
+	tests := []struct {
+		name     string
+		old, new string
+	}{
+		{name: "unknown field", old: "appearance = \"dark\"", new: "appearance = \"dark\"\nunknown = true"},
+		{name: "duplicate field", old: "version = 1", new: "version = 1\nversion = 1"},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+
+			input := strings.Replace(validTOML, test.old, test.new, 1)
+			if _, err := Decode(strings.NewReader(input)); err == nil {
+				t.Fatal("Decode() error = nil")
+			}
+		})
 	}
 }
 
 func TestEncodeNormalizesHex(t *testing.T) {
+	t.Parallel()
+
 	value, err := Decode(strings.NewReader(strings.ToLower(validTOML)))
 	if err != nil {
 		t.Fatal(err)

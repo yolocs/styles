@@ -12,6 +12,8 @@ import (
 )
 
 func TestImportActionOpensPathDialog(t *testing.T) {
+	t.Parallel()
+
 	model := testModel(t)
 	model.Regions = map[string]Region{"action:import": {X: 2, Y: 2, Width: 10, Height: 1}}
 	updated := updateModel(t, model, tea.MouseClickMsg{X: 3, Y: 2, Button: tea.MouseLeft})
@@ -21,6 +23,8 @@ func TestImportActionOpensPathDialog(t *testing.T) {
 }
 
 func TestPathDialogAcceptsConfirmationShortcutLettersAsText(t *testing.T) {
+	t.Parallel()
+
 	model := testModel(t)
 	model.openDialog(ImportDialog)
 	updated := updateModel(t, model, tea.KeyPressMsg{Code: 'y', Text: "y"})
@@ -34,6 +38,8 @@ func TestPathDialogAcceptsConfirmationShortcutLettersAsText(t *testing.T) {
 }
 
 func TestInvalidImportLeavesCurrentThemeUntouched(t *testing.T) {
+	t.Parallel()
+
 	model := testModel(t)
 	original := model.Theme
 	path := filepath.Join(t.TempDir(), "invalid.toml")
@@ -54,6 +60,8 @@ func TestInvalidImportLeavesCurrentThemeUntouched(t *testing.T) {
 }
 
 func TestDirtyImportRequiresConfirmation(t *testing.T) {
+	t.Parallel()
+
 	model := testModel(t)
 	model.Theme.Colors.Foreground = "#FFFFFF"
 	model.openDialog(ImportDialog)
@@ -65,6 +73,8 @@ func TestDirtyImportRequiresConfirmation(t *testing.T) {
 }
 
 func TestSaveWritesNormalizedThemeAndClearsDirty(t *testing.T) {
+	t.Parallel()
+
 	path := filepath.Join(t.TempDir(), "theme.toml")
 	model := testModel(t)
 	model.Path = path
@@ -87,6 +97,8 @@ func TestSaveWritesNormalizedThemeAndClearsDirty(t *testing.T) {
 }
 
 func TestExportExistingFileRequiresConfirmation(t *testing.T) {
+	t.Parallel()
+
 	path := filepath.Join(t.TempDir(), "ghostty")
 	if err := os.WriteFile(path, []byte("original"), 0o600); err != nil {
 		t.Fatal(err)
@@ -112,6 +124,8 @@ func TestExportExistingFileRequiresConfirmation(t *testing.T) {
 }
 
 func TestDirtyQuitRequiresConfirmation(t *testing.T) {
+	t.Parallel()
+
 	model := testModel(t)
 	model.Theme.Colors.Foreground = "#FFFFFF"
 	updated, command := updateModelCommand(t, model, tea.KeyPressMsg{Code: 'q', Mod: tea.ModCtrl})
@@ -121,6 +135,8 @@ func TestDirtyQuitRequiresConfirmation(t *testing.T) {
 }
 
 func TestHexEntryUpdatesSelectedColor(t *testing.T) {
+	t.Parallel()
+
 	model := testModel(t)
 	model.HexFocused = true
 	model.HexInput.Focus()
