@@ -1,0 +1,25 @@
+# yolodev
+
+`yolodev` is the repository's Go workbench for personal style assets. The MVP
+implements terminal themes through a noun-based command surface:
+
+```text
+yolodev theme edit [FILE]
+yolodev theme validate FILE
+yolodev theme export ghostty [--output PATH] FILE
+```
+
+From the repository root, use `make build` to create `bin/yolodev` and `make
+run` to edit the placeholder theme.
+
+## Editor Controls
+
+- Click semantic rows or ANSI swatches to select a color.
+- Click and drag the saturation/value plane or hue strip.
+- Click the hex field, or press Tab, to enter an exact `#RRGGBB` value.
+- Click Import, Save TOML, or Export Ghostty for file operations.
+- Press Ctrl+S to save and Ctrl+Q to quit.
+- Press Escape to cancel the active edit or dialog.
+
+The full layout requires at least 100 columns by 28 rows. Existing export
+targets and unsaved edits require explicit confirmation in the editor.
