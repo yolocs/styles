@@ -1,0 +1,36 @@
+format = "yolodev-terminal-theme"
+version = 1
+
+[theme]
+name = "example"
+variant = "minimal"
+appearance = "dark"
+description = "A minimal canonical terminal-theme example."
+
+[colors]
+background = "#101010"
+foreground = "#E0E0E0"
+cursor = "#FFFFFF"
+cursor_text = "#101010"
+selection_background = "#404040"
+selection_foreground = "#FFFFFF"
+
+[palette.normal]
+black = "#101010"
+red = "#CC6666"
+green = "#B5BD68"
+yellow = "#F0C674"
+blue = "#81A2BE"
+magenta = "#B294BB"
+cyan = "#8ABEB7"
+white = "#C5C8C6"
+
+[palette.bright]
+black = "#666666"
+red = "#D54E53"
+green = "#B9CA4A"
+yellow = "#E7C547"
+blue = "#7AA6DA"
+magenta = "#C397D8"
+cyan = "#70C0B1"
+white = "#EAEAEA"
