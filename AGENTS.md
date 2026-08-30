@@ -65,3 +65,8 @@ terminal; Ghostty is the primary target.
 Update this file when a durable repository-wide rule or boundary changes.
 Put detailed rationale and feature behavior in a design specification instead
 of turning this file into a changelog.
+
+Design documents may be committed while their implementation is in progress.
+Once the implementation is complete, remove the corresponding design documents
+and preserve only durable decisions in the appropriate standards, README, or
+this file.
