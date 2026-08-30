@@ -9,8 +9,8 @@ import (
 
 	"charm.land/bubbles/v2/textinput"
 	tea "charm.land/bubbletea/v2"
+	"github.com/yolocs/styles/yolodev/internal/exporter"
 	"github.com/yolocs/styles/yolodev/internal/fileutil"
-	"github.com/yolocs/styles/yolodev/internal/ghostty"
 	"github.com/yolocs/styles/yolodev/internal/theme"
 )
 
@@ -201,7 +201,8 @@ func saveThemeCmd(path string, value theme.Theme) tea.Cmd {
 func exportThemeCmd(path string, value theme.Theme, overwrite bool) tea.Cmd {
 	return func() tea.Msg {
 		var output bytes.Buffer
-		if err := ghostty.Render(&output, value); err != nil {
+		registry := exporter.NewDefaultRegistry()
+		if err := registry.Export("ghostty", &output, value); err != nil {
 			return fileExportedMsg{Path: path, Err: err}
 		}
 		if err := fileutil.WriteAtomic(path, output.Bytes(), overwrite); err != nil {

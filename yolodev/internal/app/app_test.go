@@ -51,7 +51,7 @@ func TestUsageReturnsTwo(t *testing.T) {
 	if code != 2 {
 		t.Fatalf("Run() code = %d, want 2", code)
 	}
-	if !strings.Contains(stderr.String(), "usage:") {
+	if !strings.Contains(stderr.String(), "Usage:") {
 		t.Fatalf("stderr = %q, want usage", stderr.String())
 	}
 }
@@ -60,7 +60,7 @@ func TestExportGhosttyWritesStdout(t *testing.T) {
 	path := writeTheme(t, readPlaceholder(t))
 	var stdout, stderr bytes.Buffer
 	code := Run(context.Background(), strings.NewReader(""), &stdout, &stderr,
-		[]string{"theme", "export", "ghostty", path})
+		[]string{"theme", "export", "--format", "ghostty", path})
 	if code != 0 || stderr.Len() != 0 {
 		t.Fatalf("code=%d stderr=%q", code, stderr.String())
 	}
@@ -75,7 +75,7 @@ func TestExportGhosttyWritesNewOutputFile(t *testing.T) {
 	outputPath := filepath.Join(t.TempDir(), "ghostty-theme")
 	var stdout, stderr bytes.Buffer
 	code := Run(context.Background(), strings.NewReader(""), &stdout, &stderr,
-		[]string{"theme", "export", "ghostty", "--output", outputPath, themePath})
+		[]string{"theme", "export", "--format", "ghostty", "--output", outputPath, themePath})
 	if code != 0 || stdout.Len() != 0 || stderr.Len() != 0 {
 		t.Fatalf("code=%d stdout=%q stderr=%q", code, stdout.String(), stderr.String())
 	}
@@ -96,13 +96,39 @@ func TestExportGhosttyRefusesExistingOutputFile(t *testing.T) {
 	}
 	var stdout, stderr bytes.Buffer
 	code := Run(context.Background(), strings.NewReader(""), &stdout, &stderr,
-		[]string{"theme", "export", "ghostty", "--output", outputPath, themePath})
+		[]string{"theme", "export", "--format", "ghostty", "--output", outputPath, themePath})
 	if code != 1 || !strings.Contains(stderr.String(), "destination exists") {
 		t.Fatalf("code=%d stderr=%q", code, stderr.String())
 	}
 	got, _ := os.ReadFile(outputPath)
 	if string(got) != "original" {
 		t.Fatalf("existing output changed to %q", got)
+	}
+}
+
+func TestExportRequiresFormat(t *testing.T) {
+	themePath := writeTheme(t, readPlaceholder(t))
+	var stdout, stderr bytes.Buffer
+	code := Run(context.Background(), strings.NewReader(""), &stdout, &stderr,
+		[]string{"theme", "export", themePath})
+	if code != 2 {
+		t.Fatalf("Run() code = %d, want 2", code)
+	}
+	if !strings.Contains(stderr.String(), "format") {
+		t.Fatalf("stderr = %q, want missing format error", stderr.String())
+	}
+}
+
+func TestExportRejectsUnknownFormat(t *testing.T) {
+	themePath := writeTheme(t, readPlaceholder(t))
+	var stdout, stderr bytes.Buffer
+	code := Run(context.Background(), strings.NewReader(""), &stdout, &stderr,
+		[]string{"theme", "export", "--format", "unknown", themePath})
+	if code != 1 {
+		t.Fatalf("Run() code = %d, want 1", code)
+	}
+	if !strings.Contains(stderr.String(), `unsupported export format "unknown"`) {
+		t.Fatalf("stderr = %q, want unsupported format error", stderr.String())
 	}
 }
 

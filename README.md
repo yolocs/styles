@@ -33,8 +33,8 @@ Validate and export without opening the TUI:
 
 ```sh
 ./bin/yolodev theme validate themes/yolodev/placeholder.toml
-./bin/yolodev theme export ghostty themes/yolodev/placeholder.toml
-./bin/yolodev theme export ghostty --output /tmp/yolodev-ghostty themes/yolodev/placeholder.toml
+./bin/yolodev theme export --format ghostty themes/yolodev/placeholder.toml
+./bin/yolodev theme export --format ghostty --output /tmp/yolodev-ghostty themes/yolodev/placeholder.toml
 ```
 
 Non-interactive export refuses to overwrite an existing destination. The app
@@ -60,6 +60,7 @@ neon street photo. Save it as themes/yolodev/rainy-neon.toml.
 ## Development
 
 ```sh
+make fmt-check
 make test
 make vet
 ```

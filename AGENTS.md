@@ -26,8 +26,11 @@ style domains until a concrete domain needs them.
   `themes/yolodev/`.
 - Canonical theme data must remain terminal-neutral. Terminal-specific syntax
   belongs in exporters.
-- `yolodev` uses noun-based commands such as `yolodev theme edit` so another
-  style domain can be added without redesigning existing commands.
+- `yolodev` uses Cobra and noun-based commands such as `yolodev theme edit` so
+  another style domain can be added without redesigning existing commands.
+- Export formats are selected with `--format` and dispatched through the
+  internal exporter registry. Terminal-specific renderers remain separate
+  packages.
 - The terminal-theme editor uses Bubble Tea v2 and Lip Gloss v2. Mouse input,
   including click-and-drag color picking, is an MVP requirement.
 - Ghostty export is deterministic and limited to known color options. Never
@@ -38,6 +41,7 @@ style domains until a concrete domain needs them.
 ## Go Conventions
 
 - Use Go 1.26 or newer.
+- Strictly follow the canonical [Google Go Style Guide](https://google.github.io/styleguide/go/).
 - Prefer explicit, small packages and standard-library code over framework
   machinery.
 - Keep the canonical theme model independent from the TUI and exporters.
@@ -52,6 +56,7 @@ style domains until a concrete domain needs them.
 Run Go commands from the repository root with Go's `-C` flag:
 
 ```sh
+make fmt-check
 go -C yolodev test ./...
 go -C yolodev vet ./...
 ```

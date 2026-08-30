@@ -6,8 +6,12 @@ implements terminal themes through a noun-based command surface:
 ```text
 yolodev theme edit [FILE]
 yolodev theme validate FILE
-yolodev theme export ghostty [--output PATH] FILE
+yolodev theme export --format FORMAT [--output PATH] FILE
 ```
+
+Ghostty is currently the only registered export format. The CLI is built with
+Cobra, and renderers are dispatched through an internal registry so formats can
+be added without changing command parsing.
 
 From the repository root, use `make build` to create `bin/yolodev` and `make
 run` to edit the placeholder theme.

@@ -49,8 +49,8 @@ inspiration; terminal roles determine the final assignments.
 
 State the created path, summarize the visual choices in a few sentences, and
 include validation results. Suggest `yolodev theme edit FILE` when the user
-wants to tune the result interactively, or `yolodev theme export ghostty FILE`
-when they want Ghostty output.
+wants to tune the result interactively. For Ghostty output, suggest
+`yolodev theme export --format ghostty FILE`.
 
 ## Common Mistakes
 
