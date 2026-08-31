@@ -21,6 +21,9 @@ func WriteAtomic(path string, data []byte, overwrite bool) (returnErr error) {
 	}
 
 	directory := filepath.Dir(path)
+	if err := os.MkdirAll(directory, 0o755); err != nil {
+		return fmt.Errorf("create destination directory %s: %w", directory, err)
+	}
 	temporary, err := os.CreateTemp(directory, ".yolodev-*")
 	if err != nil {
 		return fmt.Errorf("create temporary file for %s: %w", path, err)

@@ -110,7 +110,7 @@ func newExportCommand(stdout, stderr io.Writer, registry *exporter.Registry, exi
 		},
 	}
 	command.Flags().StringVar(&format, "format", "", "export format")
-	command.Flags().StringVarP(&outputPath, "output", "o", "", "write output to path instead of stdout")
+	command.Flags().StringVarP(&outputPath, "output", "o", "", "write output to a file or directory instead of stdout")
 	return command
 }
 
@@ -186,8 +186,18 @@ func exportTheme(stdout, stderr io.Writer, registry *exporter.Registry, format, 
 		}
 		return 0
 	}
-	if err := fileutil.WriteAtomic(outputPath, rendered.Bytes(), false); err != nil {
-		fmt.Fprintf(stderr, "%s: ERROR: write %s theme: %v\n", outputPath, format, err)
+	extension, err := registry.Extension(format)
+	if err != nil {
+		fmt.Fprintf(stderr, "%s: ERROR: %v\n", themePath, err)
+		return 1
+	}
+	destination, err := fileutil.ResolveOutputPath(outputPath, value.Theme.Variant, extension)
+	if err != nil {
+		fmt.Fprintf(stderr, "%s: ERROR: resolve %s output: %v\n", outputPath, format, err)
+		return 1
+	}
+	if err := fileutil.WriteAtomic(destination, rendered.Bytes(), false); err != nil {
+		fmt.Fprintf(stderr, "%s: ERROR: write %s theme: %v\n", destination, format, err)
 		return 1
 	}
 	return 0

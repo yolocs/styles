@@ -250,6 +250,25 @@ func TestCodexFormatSurvivesOverwriteConfirmation(t *testing.T) {
 	}
 }
 
+func TestExportFolderConfirmationUsesGeneratedFilename(t *testing.T) {
+	t.Parallel()
+
+	directory := t.TempDir()
+	outputPath := filepath.Join(directory, "test.tmTheme")
+	if err := os.WriteFile(outputPath, []byte("original"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	model := testModel(t)
+	message, ok := exportThemeCmd("codex", directory, model.Theme, false)().(fileExportedMsg)
+	if !ok {
+		t.Fatal("exportThemeCmd() did not return fileExportedMsg")
+	}
+	updated := model.handleFileExported(message)
+	if updated.Dialog.Kind != ConfirmExportDialog || updated.PendingPath != outputPath {
+		t.Fatalf("export existing = dialog %v path %q, want path %q", updated.Dialog.Kind, updated.PendingPath, outputPath)
+	}
+}
+
 func TestDirtyQuitRequiresConfirmation(t *testing.T) {
 	t.Parallel()
 

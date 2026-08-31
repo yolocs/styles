@@ -117,7 +117,7 @@ func TestExportGhosttyToFile(t *testing.T) {
 			t.Parallel()
 
 			themePath := writeTheme(t, readPlaceholder(t))
-			outputPath := filepath.Join(t.TempDir(), "ghostty-theme")
+			outputPath := filepath.Join(t.TempDir(), "ghostty-theme.ghostty")
 			if test.initial != "" {
 				if err := os.WriteFile(outputPath, []byte(test.initial), 0o600); err != nil {
 					t.Fatal(err)
@@ -138,6 +138,27 @@ func TestExportGhosttyToFile(t *testing.T) {
 				t.Fatalf("output = %q, want %q", got, test.wantOutput)
 			}
 		})
+	}
+}
+
+func TestExportCodexToFolder(t *testing.T) {
+	t.Parallel()
+
+	themePath := writeTheme(t, readSignalGrid(t))
+	outputDirectory := filepath.Join(t.TempDir(), "nested", "themes")
+	var stdout, stderr bytes.Buffer
+	code := Run(context.Background(), strings.NewReader(""), &stdout, &stderr,
+		[]string{"theme", "export", "--format", "codex", "--output", outputDirectory, themePath})
+	if code != 0 || stdout.Len() != 0 || stderr.Len() != 0 {
+		t.Fatalf("code=%d stdout=%q stderr=%q", code, stdout.String(), stderr.String())
+	}
+	outputPath := filepath.Join(outputDirectory, "signal-grid.tmTheme")
+	data, err := os.ReadFile(outputPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.HasPrefix(data, []byte("<?xml")) {
+		t.Fatalf("output %s does not contain a Codex theme:\n%s", outputPath, data)
 	}
 }
 

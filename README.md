@@ -35,12 +35,19 @@ Validate and export without opening the TUI:
 ```sh
 ./bin/yolodev theme validate themes/yolodev/placeholder.toml
 ./bin/yolodev theme export --format ghostty themes/yolodev/placeholder.toml
-./bin/yolodev theme export --format ghostty --output /tmp/yolodev-ghostty themes/yolodev/placeholder.toml
-./bin/yolodev theme export --format codex --output /tmp/signal-grid.tmTheme themes/yolodev/signal-grid.toml
+./bin/yolodev theme export --format ghostty --output /tmp/yolodev-exports themes/yolodev/placeholder.toml
+./bin/yolodev theme export --format codex --output /tmp/yolodev-exports themes/yolodev/signal-grid.toml
 ```
 
+An existing directory, or a missing path without an extension, is treated as
+an output directory. Yolodev creates missing parent directories and derives
+the filename from the theme variant, producing `placeholder.ghostty` or
+`signal-grid.tmTheme` in the example above. Use a path with an extension to
+name the output file explicitly. Paths beginning with `~` use the current home
+directory.
+
 Non-interactive export refuses to overwrite an existing destination. The app
-never edits or installs into your Ghostty or Codex configuration.
+never edits or installs into your Ghostty or Codex configuration automatically.
 
 To use a Codex export, place the `.tmTheme` file under `$CODEX_HOME/themes`
 (normally `~/.codex/themes`) and select it with `/theme`. This changes syntax

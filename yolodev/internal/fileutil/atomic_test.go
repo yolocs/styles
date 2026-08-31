@@ -46,3 +46,19 @@ func TestWriteAtomic(t *testing.T) {
 		})
 	}
 }
+
+func TestWriteAtomicCreatesParentDirectories(t *testing.T) {
+	t.Parallel()
+
+	path := filepath.Join(t.TempDir(), "nested", "themes", "signal-grid.tmTheme")
+	if err := WriteAtomic(path, []byte("theme"), false); err != nil {
+		t.Fatalf("WriteAtomic() error = %v", err)
+	}
+	got, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != "theme" {
+		t.Fatalf("destination = %q, want %q", got, "theme")
+	}
+}

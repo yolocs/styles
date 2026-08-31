@@ -257,10 +257,18 @@ func exportThemeCmd(format, path string, value theme.Theme, overwrite bool) tea.
 		if err := registry.Export(format, &output, value); err != nil {
 			return fileExportedMsg{Format: format, Path: path, Err: err}
 		}
-		if err := fileutil.WriteAtomic(path, output.Bytes(), overwrite); err != nil {
+		extension, err := registry.Extension(format)
+		if err != nil {
 			return fileExportedMsg{Format: format, Path: path, Err: err}
 		}
-		return fileExportedMsg{Format: format, Path: path}
+		destination, err := fileutil.ResolveOutputPath(path, value.Theme.Variant, extension)
+		if err != nil {
+			return fileExportedMsg{Format: format, Path: path, Err: err}
+		}
+		if err := fileutil.WriteAtomic(destination, output.Bytes(), overwrite); err != nil {
+			return fileExportedMsg{Format: format, Path: destination, Err: err}
+		}
+		return fileExportedMsg{Format: format, Path: destination}
 	}
 }
 

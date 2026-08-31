@@ -13,11 +13,17 @@ Ghostty and Codex TextMate themes are registered export formats. The CLI is
 built with Cobra, and renderers are dispatched through an internal registry so
 formats can be added without changing command parsing.
 
-For example, export Signal Grid for Codex without installing it automatically:
+For example, export Signal Grid for Codex into a folder without installing it
+automatically:
 
 ```sh
-yolodev theme export --format codex --output signal-grid.tmTheme ../themes/yolodev/signal-grid.toml
+yolodev theme export --format codex --output ~/theme-exports ../themes/yolodev/signal-grid.toml
 ```
+
+The output is `~/theme-exports/signal-grid.tmTheme`. An existing directory, or
+a missing path without an extension, is treated as a directory; missing parent
+directories are created. A path with an extension is used as an explicit
+filename. Ghostty folder exports use the `.ghostty` extension.
 
 Move the result under `$CODEX_HOME/themes` and select it with `/theme`. The
 export controls syntax highlighting, not the surrounding Codex interface.

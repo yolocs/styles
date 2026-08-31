@@ -81,3 +81,29 @@ func TestRegistryRejectsInvalidRegistration(t *testing.T) {
 		})
 	}
 }
+
+func TestDefaultRegistryFileExtensions(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		format string
+		want   string
+	}{
+		{format: "codex", want: ".tmTheme"},
+		{format: "ghostty", want: ".ghostty"},
+	}
+	registry := NewDefaultRegistry()
+	for _, test := range tests {
+		t.Run(test.format, func(t *testing.T) {
+			t.Parallel()
+
+			got, err := registry.Extension(test.format)
+			if err != nil {
+				t.Fatalf("Extension(%q) error = %v", test.format, err)
+			}
+			if got != test.want {
+				t.Fatalf("Extension(%q) = %q, want %q", test.format, got, test.want)
+			}
+		})
+	}
+}
