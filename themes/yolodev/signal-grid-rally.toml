@@ -1,0 +1,36 @@
+format = "yolodev-terminal-theme"
+version = 1
+
+[theme]
+name = "yolodev"
+variant = "signal-grid-rally"
+appearance = "dark"
+description = "A smoked-aubergine rally-sunset variant with hot pink signals, violet shadows, and headlight warmth."
+
+[colors]
+background = "#1E141C"
+foreground = "#E8D7E6"
+cursor = "#FFD47A"
+cursor_text = "#1E141C"
+selection_background = "#7B245F"
+selection_foreground = "#FFF0F8"
+
+[palette.normal]
+black = "#30222D"
+red = "#E83F63"
+green = "#7EBB86"
+yellow = "#E8B35A"
+blue = "#806BC7"
+magenta = "#C83E9D"
+cyan = "#6EAFC2"
+white = "#D7C5D3"
+
+[palette.bright]
+black = "#8A5C7D"
+red = "#FF5C7C"
+green = "#9DD7A3"
+yellow = "#FFD47A"
+blue = "#A18BE8"
+magenta = "#F05AC6"
+cyan = "#8ED6E6"
+white = "#FFF0F8"
