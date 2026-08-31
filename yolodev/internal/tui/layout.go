@@ -56,6 +56,6 @@ func LayoutFor(width, height int) Layout {
 	actionY := height - 3
 	layout.Regions["action:import"] = Region{X: 1, Y: actionY, Width: 8, Height: 1}
 	layout.Regions["action:save"] = Region{X: 11, Y: actionY, Width: 11, Height: 1}
-	layout.Regions["action:export"] = Region{X: 24, Y: actionY, Width: 16, Height: 1}
+	layout.Regions["action:export"] = Region{X: 24, Y: actionY, Width: 8, Height: 1}
 	return layout
 }

@@ -9,7 +9,7 @@ description = "A restrained cyberpunk theme with electric cyan signals and pixel
 
 [colors]
 background = "#0B1018"
-foreground = "#CAD5DF"
+foreground = "#C5D7DC"
 cursor = "#73F4FF"
 cursor_text = "#0B1018"
 selection_background = "#2A3150"

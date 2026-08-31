@@ -19,20 +19,21 @@ func (r ColorRef) Key() string {
 }
 
 type Model struct {
-	Theme       theme.Theme
-	Clean       theme.Theme
-	Path        string
-	Width       int
-	Height      int
-	Layout      Layout
-	Regions     map[string]Region
-	Selected    ColorRef
-	Picker      Picker
-	HexInput    textinput.Model
-	HexFocused  bool
-	Dialog      Dialog
-	PendingPath string
-	Status      string
+	Theme         theme.Theme
+	Clean         theme.Theme
+	Path          string
+	Width         int
+	Height        int
+	Layout        Layout
+	Regions       map[string]Region
+	Selected      ColorRef
+	Picker        Picker
+	HexInput      textinput.Model
+	HexFocused    bool
+	Dialog        Dialog
+	PendingPath   string
+	PendingFormat string
+	Status        string
 }
 
 func New(value theme.Theme, path string) Model {

@@ -30,7 +30,9 @@ run` to edit the placeholder theme.
 - Click semantic rows or ANSI swatches to select a color.
 - Click and drag the saturation/value plane or hue strip.
 - Click the hex field, or press Tab, to enter an exact `#RRGGBB` value.
-- Click Import, Save TOML, or Export Ghostty for file operations.
+- Click Import, Save TOML, or Export for file operations.
+- In the export popup, choose Ghostty or Codex with Left/Right or the mouse;
+  press Tab to switch between the format selector and path.
 - Press Ctrl+S to save and Ctrl+Q to quit.
 - Press Escape to cancel the active edit or dialog.
 

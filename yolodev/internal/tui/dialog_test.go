@@ -22,6 +22,97 @@ func TestImportActionOpensPathDialog(t *testing.T) {
 	}
 }
 
+func TestExportActionOpensFormatPopup(t *testing.T) {
+	t.Parallel()
+
+	model := updateModel(t, testModel(t), tea.WindowSizeMsg{Width: 120, Height: 36})
+	region := model.Regions["action:export"]
+	updated := updateModel(t, model, tea.MouseClickMsg{X: region.X, Y: region.Y, Button: tea.MouseLeft})
+	if updated.Dialog.Kind != ExportDialog {
+		t.Fatalf("dialog kind = %v, want export dialog", updated.Dialog.Kind)
+	}
+	if updated.Dialog.Input.Focused() {
+		t.Fatal("export path is focused before a format is chosen")
+	}
+	content := updated.View().Content
+	for _, text := range []string{"EXPORT THEME", "Ghostty", "Codex", "←/→ choose"} {
+		if !strings.Contains(content, text) {
+			t.Errorf("export popup missing %q", text)
+		}
+	}
+}
+
+func TestExportPopupWritesSelectedCodexFormat(t *testing.T) {
+	t.Parallel()
+
+	path := filepath.Join(t.TempDir(), "signal-grid.tmTheme")
+	model := updateModel(t, testModel(t), tea.WindowSizeMsg{Width: 120, Height: 36})
+	action := model.Regions["action:export"]
+	model = updateModel(t, model, tea.MouseClickMsg{X: action.X, Y: action.Y, Button: tea.MouseLeft})
+	codex := model.Regions["dialog:format:codex"]
+	model = updateModel(t, model, tea.MouseClickMsg{X: codex.X, Y: codex.Y, Button: tea.MouseLeft})
+	input := model.Regions["dialog:input"]
+	model = updateModel(t, model, tea.MouseClickMsg{X: input.X, Y: input.Y, Button: tea.MouseLeft})
+	model.Dialog.Input.SetValue(path)
+
+	updated, command := updateModelCommand(t, model, tea.KeyPressMsg{Code: tea.KeyEnter})
+	if command == nil {
+		t.Fatal("Codex export returned nil command")
+	}
+	updated = updateModel(t, updated, command())
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.HasPrefix(data, []byte("<?xml")) {
+		t.Fatalf("selected Codex export wrote unexpected data:\n%s", data)
+	}
+	if updated.Dialog.Kind != NoDialog {
+		t.Fatalf("successful Codex export left dialog %v open", updated.Dialog.Kind)
+	}
+}
+
+func TestExportPopupArrowKeysSelectFormat(t *testing.T) {
+	t.Parallel()
+
+	model := testModel(t)
+	model.openDialog(ExportDialog)
+	model = updateModel(t, model, tea.KeyPressMsg{Code: tea.KeyRight})
+	if model.Dialog.ExportFormat != "codex" {
+		t.Fatalf("right arrow selected %q, want codex", model.Dialog.ExportFormat)
+	}
+	model = updateModel(t, model, tea.KeyPressMsg{Code: tea.KeyLeft})
+	if model.Dialog.ExportFormat != "ghostty" {
+		t.Fatalf("left arrow selected %q, want ghostty", model.Dialog.ExportFormat)
+	}
+}
+
+func TestExportPopupTabSwitchesFocus(t *testing.T) {
+	t.Parallel()
+
+	model := testModel(t)
+	model.openDialog(ExportDialog)
+	model = updateModel(t, model, tea.KeyPressMsg{Code: tea.KeyTab})
+	if !model.Dialog.Input.Focused() {
+		t.Fatal("Tab did not focus the export path")
+	}
+	model = updateModel(t, model, tea.KeyPressMsg{Code: tea.KeyTab})
+	if model.Dialog.Input.Focused() {
+		t.Fatal("second Tab did not return focus to the format selector")
+	}
+}
+
+func TestExportPopupEnterMovesFromFormatToPath(t *testing.T) {
+	t.Parallel()
+
+	model := testModel(t)
+	model.openDialog(ExportDialog)
+	updated, command := updateModelCommand(t, model, tea.KeyPressMsg{Code: tea.KeyEnter})
+	if command != nil || !updated.Dialog.Input.Focused() || updated.Dialog.Message != "" {
+		t.Fatalf("Enter on format returned command=%v focused=%v message=%q", command, updated.Dialog.Input.Focused(), updated.Dialog.Message)
+	}
+}
+
 func TestPathDialogAcceptsConfirmationShortcutLettersAsText(t *testing.T) {
 	t.Parallel()
 
@@ -105,6 +196,7 @@ func TestExportExistingFileRequiresConfirmation(t *testing.T) {
 	}
 	model := testModel(t)
 	model.openDialog(ExportDialog)
+	model = updateModel(t, model, tea.KeyPressMsg{Code: tea.KeyTab})
 	model.Dialog.Input.SetValue(path)
 	updated, command := updateModelCommand(t, model, tea.KeyPressMsg{Code: tea.KeyEnter})
 	updated = updateModel(t, updated, command())
@@ -120,6 +212,41 @@ func TestExportExistingFileRequiresConfirmation(t *testing.T) {
 	}
 	if !strings.Contains(string(data), "palette = 0=") || updated.Dialog.Kind != NoDialog {
 		t.Fatalf("confirmed export = dialog %v data %q", updated.Dialog.Kind, data)
+	}
+}
+
+func TestCodexFormatSurvivesOverwriteConfirmation(t *testing.T) {
+	t.Parallel()
+
+	path := filepath.Join(t.TempDir(), "existing.tmTheme")
+	if err := os.WriteFile(path, []byte("original"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	model := testModel(t)
+	model.openDialog(ExportDialog)
+	model = updateModel(t, model, tea.KeyPressMsg{Code: tea.KeyRight})
+	model = updateModel(t, model, tea.KeyPressMsg{Code: tea.KeyTab})
+	model.Dialog.Input.SetValue(path)
+
+	updated, command := updateModelCommand(t, model, tea.KeyPressMsg{Code: tea.KeyEnter})
+	if command == nil {
+		t.Fatal("initial Codex export returned nil command")
+	}
+	updated = updateModel(t, updated, command())
+	if updated.Dialog.Kind != ConfirmExportDialog {
+		t.Fatalf("existing Codex export opened dialog %v, want confirmation", updated.Dialog.Kind)
+	}
+	updated, command = updateModelCommand(t, updated, tea.KeyPressMsg{Code: tea.KeyEnter})
+	if command == nil {
+		t.Fatal("confirmed Codex overwrite returned nil command")
+	}
+	updated = updateModel(t, updated, command())
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.HasPrefix(data, []byte("<?xml")) || updated.Dialog.Kind != NoDialog {
+		t.Fatalf("confirmed Codex export = dialog %v data %q", updated.Dialog.Kind, data)
 	}
 }
 

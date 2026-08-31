@@ -27,8 +27,8 @@ make run
 ```
 
 The editor supports mouse selection, click-and-drag saturation/value and hue
-controls, direct hex input, canonical TOML import/save, and Ghostty export. The
-CLI also exports Codex-compatible TextMate syntax themes.
+controls, direct hex input, canonical TOML import/save, and Ghostty or Codex
+export. The CLI supports the same two formats.
 
 Validate and export without opening the TUI:
 

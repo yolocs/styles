@@ -42,10 +42,9 @@ func renderMain(model Model) string {
 	dockWidth := 42
 	previewWidth := model.Width - dockWidth - 1
 	dock := make([]string, panelHeight)
-	preview := make([]string, panelHeight)
+	preview := renderThemePreview(value, panelHeight)
 	for index := range dock {
 		dock[index] = ""
-		preview[index] = ""
 	}
 
 	dock[0] = lipgloss.NewStyle().Bold(true).Foreground(accent).Render(" SEMANTIC")
@@ -104,22 +103,8 @@ func renderMain(model Model) string {
 		hex += model.color(model.Selected) + "  (click or Tab to edit)"
 	}
 	dock[layout.Regions["hex"].Y-1] = hex
-	actionLine := " " + button("Import", accent, background) + "  " + button("Save TOML", accent, background) + "  " + button("Export Ghostty", accent, background)
+	actionLine := " " + button("Import", accent, background) + "  " + button("Save TOML", accent, background) + "  " + button("Export", accent, background)
 	dock[layout.Regions["action:import"].Y-1] = actionLine
-
-	preview[0] = lipgloss.NewStyle().Bold(true).Foreground(accent).Render(" TERMINAL PREVIEW")
-	preview[2] = " " + colored(value.Palette.Normal.Green, "➜") + " " + colored(value.Palette.Normal.Blue, "~/styles") + " git status"
-	preview[3] = " " + colored(value.Palette.Normal.Yellow, "M") + " themes/yolodev/placeholder.toml"
-	preview[5] = " " + colored(value.Palette.Bright.Green, "✓ 42 tests passed")
-	preview[6] = " " + colored(value.Palette.Normal.Yellow, "warning:") + " contrast is a design choice"
-	preview[7] = " " + colored(value.Palette.Normal.Red, "error:") + " example failure text"
-	preview[9] = " " + colored(value.Palette.Normal.Blue, "func") + " main() {"
-	preview[10] = "     fmt.Println(" + colored(value.Palette.Normal.Green, `"hello, yolodev"`) + ")"
-	preview[11] = " }"
-	preview[13] = " " + lipgloss.NewStyle().Background(lipgloss.Color(value.Colors.SelectionBackground)).Foreground(lipgloss.Color(value.Colors.SelectionForeground)).Render(" selected text ")
-	preview[15] = " cursor  " + lipgloss.NewStyle().Background(lipgloss.Color(value.Colors.Cursor)).Foreground(lipgloss.Color(value.Colors.CursorText)).Render(" A ")
-	preview[17] = " normal  " + renderPalette(value.Palette.Normal)
-	preview[19] = " bright  " + renderPalette(value.Palette.Bright)
 
 	lines := []string{header}
 	separator := lipgloss.NewStyle().Foreground(muted).Background(background).Render("│")
@@ -136,11 +121,41 @@ func renderMain(model Model) string {
 	return strings.Join(lines, "\n")
 }
 
+func renderThemePreview(value theme.Theme, height int) []string {
+	preview := make([]string, height)
+	put := func(row int, content string) {
+		if row >= 0 && row < len(preview) {
+			preview[row] = content
+		}
+	}
+
+	put(0, lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color(value.Colors.Cursor)).Render(" TERMINAL PREVIEW"))
+	put(2, " "+colored(value.Palette.Normal.Green, "➜")+" "+colored(value.Palette.Normal.Blue, "~/styles")+" yolodev theme validate signal-grid.toml")
+	put(3, " "+colored(value.Palette.Bright.Green, "✓ valid")+"  "+colored(value.Palette.Bright.Black, "// 0 warnings"))
+	put(5, " "+colored(value.Palette.Bright.Black, "// Go · editor state"))
+	put(6, " "+colored(value.Palette.Bright.Magenta, "func")+" "+colored(value.Palette.Normal.Cyan, "render")+"(theme "+colored(value.Palette.Bright.Blue, "Theme")+") "+colored(value.Palette.Bright.Blue, "string")+" {")
+	put(7, "   "+colored(value.Palette.Bright.Magenta, "if")+" theme.Depth > "+colored(value.Palette.Normal.Yellow, "42")+" {")
+	put(8, "     "+colored(value.Palette.Bright.Magenta, "return")+" "+colored(value.Palette.Normal.Green, `"signal-grid"`))
+	put(9, "   }")
+	put(10, " }")
+	put(12, " "+colored(value.Palette.Bright.Black, "// JSON"))
+	put(13, " { "+colored(value.Palette.Normal.Green, `"accent"`)+": "+colored(value.Palette.Normal.Green, `"#73F4FF"`)+", "+colored(value.Palette.Normal.Green, `"active"`)+": "+colored(value.Palette.Bright.Magenta, "true")+" }")
+	put(15, " "+colored(value.Palette.Normal.Red, "- stale cache"))
+	put(16, " "+colored(value.Palette.Normal.Green, "+ palette synced"))
+	put(17, " "+colored(value.Palette.Normal.Yellow, "~ preview updated"))
+	put(19, " "+colored(value.Palette.Bright.Red, "invalid:")+" unknown color token")
+	put(20, " "+lipgloss.NewStyle().Background(lipgloss.Color(value.Colors.SelectionBackground)).Foreground(lipgloss.Color(value.Colors.SelectionForeground)).Render(" selected text "))
+	put(21, " cursor  "+lipgloss.NewStyle().Background(lipgloss.Color(value.Colors.Cursor)).Foreground(lipgloss.Color(value.Colors.CursorText)).Render(" A "))
+	put(23, " normal  "+renderPalette(value.Palette.Normal))
+	put(24, " bright  "+renderPalette(value.Palette.Bright))
+	return preview
+}
+
 func renderDialog(model Model) string {
 	title, message := dialogCopy(model)
 	boxWidth := 70
 	x := (model.Width - boxWidth) / 2
-	y := model.Height/2 - 3
+	y := dialogTop(model.Height, model.Dialog.Kind)
 	background := lipgloss.Color(model.Theme.Colors.Background)
 	foreground := lipgloss.Color(model.Theme.Colors.Foreground)
 	accent := lipgloss.Color(model.Theme.Colors.Cursor)
@@ -154,15 +169,42 @@ func renderDialog(model Model) string {
 		}
 	}
 	put(y, lipgloss.NewStyle().Bold(true).Foreground(accent).Render("  "+title))
-	if model.Dialog.Kind == ImportDialog || model.Dialog.Kind == ExportDialog {
+	if model.Dialog.Kind == ImportDialog {
 		put(y+2, "  "+model.Dialog.Input.View())
+	} else if model.Dialog.Kind == ExportDialog {
+		formatMarker := " "
+		pathMarker := " "
+		if model.Dialog.Input.Focused() {
+			pathMarker = "›"
+		} else {
+			formatMarker = "›"
+		}
+		ghostty := "[Ghostty]"
+		codex := "[Codex]"
+		if model.Dialog.ExportFormat == "ghostty" {
+			ghostty = button("Ghostty", accent, background)
+		}
+		if model.Dialog.ExportFormat == "codex" {
+			codex = button("Codex", accent, background)
+		}
+		put(y+2, "  "+formatMarker+" Format: "+ghostty+"  "+codex)
+		put(y+3, lipgloss.NewStyle().Foreground(lipgloss.Color(model.Theme.Palette.Bright.Black)).Render("  ←/→ choose • Tab path"))
+		put(y+4, "  "+pathMarker+" Path: "+model.Dialog.Input.View())
 	} else {
 		put(y+2, "  "+truncatePlain(message, boxWidth-4))
 	}
 	if model.Dialog.Message != "" && (model.Dialog.Kind == ImportDialog || model.Dialog.Kind == ExportDialog) {
-		put(y+3, "  "+truncatePlain(model.Dialog.Message, boxWidth-4))
+		messageY := y + 3
+		if model.Dialog.Kind == ExportDialog {
+			messageY = y + 5
+		}
+		put(messageY, "  "+truncatePlain(model.Dialog.Message, boxWidth-4))
 	}
-	put(y+4, "  "+button("Confirm", accent, background)+"  "+button("Cancel", accent, background))
+	actionY := y + 4
+	if model.Dialog.Kind == ExportDialog {
+		actionY = y + 6
+	}
+	put(actionY, "  "+button("Confirm", accent, background)+"  "+button("Cancel", accent, background))
 	return strings.Join(lines, "\n")
 }
 
@@ -171,7 +213,7 @@ func dialogCopy(model Model) (string, string) {
 	case ImportDialog:
 		return "IMPORT THEME", ""
 	case ExportDialog:
-		return "EXPORT GHOSTTY", ""
+		return "EXPORT THEME", ""
 	case ConfirmImportDialog:
 		return "DISCARD UNSAVED CHANGES?", "Import " + model.PendingPath + " and replace current edits?"
 	case ConfirmExportDialog:

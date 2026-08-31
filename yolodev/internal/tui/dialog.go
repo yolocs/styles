@@ -27,9 +27,10 @@ const (
 )
 
 type Dialog struct {
-	Kind    DialogKind
-	Input   textinput.Model
-	Message string
+	Kind         DialogKind
+	Input        textinput.Model
+	Message      string
+	ExportFormat string
 }
 
 type fileLoadedMsg struct {
@@ -45,18 +46,22 @@ type fileSavedMsg struct {
 }
 
 type fileExportedMsg struct {
-	Path string
-	Err  error
+	Format string
+	Path   string
+	Err    error
 }
 
 func (m *Model) openDialog(kind DialogKind) {
 	input := textinput.New()
 	input.Prompt = "Path: "
+	if kind == ExportDialog {
+		input.Prompt = ""
+	}
 	input.SetWidth(58)
-	if kind == ImportDialog || kind == ExportDialog {
+	if kind == ImportDialog {
 		input.Focus()
 	}
-	m.Dialog = Dialog{Kind: kind, Input: input}
+	m.Dialog = Dialog{Kind: kind, Input: input, ExportFormat: "ghostty"}
 	m.refreshRegions()
 }
 
@@ -76,14 +81,38 @@ func (m *Model) installDialogRegions() {
 	}
 	boxWidth := 70
 	x := (m.Width - boxWidth) / 2
-	y := m.Height/2 - 3
-	m.Regions["dialog:input"] = Region{X: x + 2, Y: y + 2, Width: boxWidth - 4, Height: 1}
-	m.Regions["dialog:confirm"] = Region{X: x + 2, Y: y + 4, Width: 9, Height: 1}
-	m.Regions["dialog:cancel"] = Region{X: x + 13, Y: y + 4, Width: 8, Height: 1}
+	y := dialogTop(m.Height, m.Dialog.Kind)
+	inputY := y + 2
+	actionY := y + 4
+	if m.Dialog.Kind == ExportDialog {
+		inputY = y + 4
+		actionY = y + 6
+		m.Regions["dialog:format:ghostty"] = Region{X: x + 12, Y: y + 2, Width: 9, Height: 1}
+		m.Regions["dialog:format:codex"] = Region{X: x + 23, Y: y + 2, Width: 7, Height: 1}
+	}
+	m.Regions["dialog:input"] = Region{X: x + 2, Y: inputY, Width: boxWidth - 4, Height: 1}
+	m.Regions["dialog:confirm"] = Region{X: x + 2, Y: actionY, Width: 9, Height: 1}
+	m.Regions["dialog:cancel"] = Region{X: x + 13, Y: actionY, Width: 8, Height: 1}
+}
+
+func dialogTop(height int, kind DialogKind) int {
+	if kind == ExportDialog {
+		return height/2 - 4
+	}
+	return height/2 - 3
 }
 
 func (m Model) updateDialog(message tea.Msg) (tea.Model, tea.Cmd) {
 	if mouse, ok := message.(tea.MouseClickMsg); ok && mouse.Button == tea.MouseLeft {
+		if m.Dialog.Kind == ExportDialog {
+			for _, format := range []string{"ghostty", "codex"} {
+				if region := m.Regions["dialog:format:"+format]; region.Contains(mouse.X, mouse.Y) {
+					m.Dialog.ExportFormat = format
+					m.Dialog.Input.Blur()
+					return m, nil
+				}
+			}
+		}
 		if region := m.Regions["dialog:cancel"]; region.Contains(mouse.X, mouse.Y) {
 			m.closeDialog()
 			return m, nil
@@ -97,6 +126,27 @@ func (m Model) updateDialog(message tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	if key, ok := message.(tea.KeyPressMsg); ok {
+		if m.Dialog.Kind == ExportDialog && key.Code == tea.KeyTab {
+			if m.Dialog.Input.Focused() {
+				m.Dialog.Input.Blur()
+			} else {
+				m.Dialog.Input.Focus()
+			}
+			return m, nil
+		}
+		if m.Dialog.Kind == ExportDialog && !m.Dialog.Input.Focused() {
+			switch key.Code {
+			case tea.KeyLeft:
+				m.Dialog.ExportFormat = "ghostty"
+				return m, nil
+			case tea.KeyRight:
+				m.Dialog.ExportFormat = "codex"
+				return m, nil
+			case tea.KeyEnter:
+				m.Dialog.Input.Focus()
+				return m, nil
+			}
+		}
 		confirmation := m.Dialog.Kind == ConfirmImportDialog || m.Dialog.Kind == ConfirmExportDialog || m.Dialog.Kind == ConfirmQuitDialog || m.Dialog.Kind == ErrorDialog
 		if key.Code == tea.KeyEscape || (confirmation && key.Keystroke() == "n") {
 			m.closeDialog()
@@ -136,16 +186,18 @@ func (m Model) confirmDialog() (tea.Model, tea.Cmd) {
 			m.Dialog.Message = "path must not be empty"
 			return m, nil
 		}
+		format := m.Dialog.ExportFormat
 		m.closeDialog()
-		return m, exportThemeCmd(path, m.Theme, false)
+		return m, exportThemeCmd(format, path, m.Theme, false)
 	case ConfirmImportDialog:
 		path := m.PendingPath
 		m.closeDialog()
 		return m, loadThemeCmd(path)
 	case ConfirmExportDialog:
 		path := m.PendingPath
+		format := m.PendingFormat
 		m.closeDialog()
-		return m, exportThemeCmd(path, m.Theme, true)
+		return m, exportThemeCmd(format, path, m.Theme, true)
 	case ConfirmQuitDialog:
 		m.closeDialog()
 		return m, tea.Quit
@@ -198,17 +250,17 @@ func saveThemeCmd(path string, value theme.Theme) tea.Cmd {
 	}
 }
 
-func exportThemeCmd(path string, value theme.Theme, overwrite bool) tea.Cmd {
+func exportThemeCmd(format, path string, value theme.Theme, overwrite bool) tea.Cmd {
 	return func() tea.Msg {
 		var output bytes.Buffer
 		registry := exporter.NewDefaultRegistry()
-		if err := registry.Export("ghostty", &output, value); err != nil {
-			return fileExportedMsg{Path: path, Err: err}
+		if err := registry.Export(format, &output, value); err != nil {
+			return fileExportedMsg{Format: format, Path: path, Err: err}
 		}
 		if err := fileutil.WriteAtomic(path, output.Bytes(), overwrite); err != nil {
-			return fileExportedMsg{Path: path, Err: err}
+			return fileExportedMsg{Format: format, Path: path, Err: err}
 		}
-		return fileExportedMsg{Path: path}
+		return fileExportedMsg{Format: format, Path: path}
 	}
 }
 
@@ -222,6 +274,7 @@ func (m Model) handleFileLoaded(message fileLoadedMsg) Model {
 	m.Path = message.Path
 	m.Selected = ColorRef{Group: "colors", Name: "background"}
 	m.PendingPath = ""
+	m.PendingFormat = ""
 	m.closeDialog()
 	m.syncPicker()
 	m.Status = "imported " + message.Path
@@ -244,6 +297,7 @@ func (m Model) handleFileSaved(message fileSavedMsg) Model {
 func (m Model) handleFileExported(message fileExportedMsg) Model {
 	if errors.Is(message.Err, fileutil.ErrExists) {
 		m.PendingPath = message.Path
+		m.PendingFormat = message.Format
 		m.openDialog(ConfirmExportDialog)
 		return m
 	}
@@ -252,6 +306,7 @@ func (m Model) handleFileExported(message fileExportedMsg) Model {
 		return m
 	}
 	m.PendingPath = ""
+	m.PendingFormat = ""
 	m.closeDialog()
 	m.Status = "exported " + message.Path
 	return m
