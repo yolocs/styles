@@ -82,6 +82,23 @@ func TestExportGhosttyWritesStdout(t *testing.T) {
 	}
 }
 
+func TestExportCodexWritesStdout(t *testing.T) {
+	t.Parallel()
+
+	path := writeTheme(t, readSignalGrid(t))
+	var stdout, stderr bytes.Buffer
+	code := Run(context.Background(), strings.NewReader(""), &stdout, &stderr,
+		[]string{"theme", "export", "--format", "codex", path})
+	if code != 0 || stderr.Len() != 0 {
+		t.Fatalf("code=%d stderr=%q", code, stderr.String())
+	}
+	if !strings.Contains(stdout.String(), "<plist version=\"1.0\">") ||
+		!strings.Contains(stdout.String(), "<string>#D092FF</string>") ||
+		!strings.Contains(stdout.String(), "<string>entity.name.function, support.function, variable.function</string>") {
+		t.Fatalf("stdout does not contain complete Codex theme:\n%s", stdout.String())
+	}
+}
+
 func TestExportGhosttyToFile(t *testing.T) {
 	t.Parallel()
 
@@ -184,6 +201,15 @@ func TestEditCommandLoadsExplicitThemeAndRunsEditor(t *testing.T) {
 func readPlaceholder(t *testing.T) []byte {
 	t.Helper()
 	data, err := os.ReadFile(filepath.Join("..", "..", "..", "themes", "yolodev", "placeholder.toml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return data
+}
+
+func readSignalGrid(t *testing.T) []byte {
+	t.Helper()
+	data, err := os.ReadFile(filepath.Join("..", "..", "..", "themes", "yolodev", "signal-grid.toml"))
 	if err != nil {
 		t.Fatal(err)
 	}

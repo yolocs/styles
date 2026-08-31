@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "https://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+  <dict>
+    <key>name</key>
+    <string>yolodev signal-grid</string>
+    <key>settings</key>
+    <array>
+      <dict>
+        <key>settings</key>
+        <dict>
+          <key>background</key>
+          <string>#0B1018</string>
+          <key>foreground</key>
+          <string>#CAD5DF</string>
+          <key>caret</key>
+          <string>#73F4FF</string>
+          <key>selection</key>
+          <string>#2A3150</string>
+          <key>selectionForeground</key>
+          <string>#E0EDF0</string>
+        </dict>
+      </dict>
+      <dict>
+        <key>name</key>
+        <string>Comments</string>
+        <key>scope</key>
+        <string>comment, punctuation.definition.comment</string>
+        <key>settings</key>
+        <dict>
+          <key>foreground</key>
+          <string>#52606F</string>
+        </dict>
+      </dict>
+      <dict>
+        <key>name</key>
+        <string>Strings</string>
+        <key>scope</key>
+        <string>string, constant.other.symbol</string>
+        <key>settings</key>
+        <dict>
+          <key>foreground</key>
+          <string>#64D993</string>
+        </dict>
+      </dict>
+      <dict>
+        <key>name</key>
+        <string>Numbers</string>
+        <key>scope</key>
+        <string>constant.numeric</string>
+        <key>settings</key>
+        <dict>
+          <key>foreground</key>
+          <string>#E7B84E</string>
+        </dict>
+      </dict>
+      <dict>
+        <key>name</key>
+        <string>Keywords</string>
+        <key>scope</key>
+        <string>keyword, storage</string>
+        <key>settings</key>
+        <dict>
+          <key>foreground</key>
+          <string>#D092FF</string>
+        </dict>
+      </dict>
+      <dict>
+        <key>name</key>
+        <string>Functions</string>
+        <key>scope</key>
+        <string>entity.name.function, support.function, variable.function</string>
+        <key>settings</key>
+        <dict>
+          <key>foreground</key>
+          <string>#37CFDC</string>
+        </dict>
+      </dict>
+      <dict>
+        <key>name</key>
+        <string>Types</string>
+        <key>scope</key>
+        <string>entity.name.type, entity.name.class, support.type, support.class</string>
+        <key>settings</key>
+        <dict>
+          <key>foreground</key>
+          <string>#73B7FF</string>
+        </dict>
+      </dict>
+      <dict>
+        <key>name</key>
+        <string>Invalid</string>
+        <key>scope</key>
+        <string>invalid, invalid.illegal</string>
+        <key>settings</key>
+        <dict>
+          <key>foreground</key>
+          <string>#FF7892</string>
+        </dict>
+      </dict>
+      <dict>
+        <key>name</key>
+        <string>Deleted</string>
+        <key>scope</key>
+        <string>markup.deleted, diff.deleted</string>
+        <key>settings</key>
+        <dict>
+          <key>foreground</key>
+          <string>#E85D78</string>
+        </dict>
+      </dict>
+      <dict>
+        <key>name</key>
+        <string>Inserted</string>
+        <key>scope</key>
+        <string>markup.inserted, diff.inserted</string>
+        <key>settings</key>
+        <dict>
+          <key>foreground</key>
+          <string>#64D993</string>
+        </dict>
+      </dict>
+      <dict>
+        <key>name</key>
+        <string>Changed</string>
+        <key>scope</key>
+        <string>markup.changed, diff.changed</string>
+        <key>settings</key>
+        <dict>
+          <key>foreground</key>
+          <string>#E7B84E</string>
+        </dict>
+      </dict>
+    </array>
+  </dict>
+</plist>

@@ -13,8 +13,8 @@ themes/               Canonical terminal-theme assets
 yolodev/              Go application for creating and editing styles
 ```
 
-The first theme family is `themes/yolodev/`. Its initial variant is deliberately
-a placeholder; visual design comes later.
+The first theme family is `themes/yolodev/`, including the Signal Grid dark
+variant.
 
 ## Quick Start
 
@@ -27,7 +27,8 @@ make run
 ```
 
 The editor supports mouse selection, click-and-drag saturation/value and hue
-controls, direct hex input, canonical TOML import/save, and Ghostty export.
+controls, direct hex input, canonical TOML import/save, and Ghostty export. The
+CLI also exports Codex-compatible TextMate syntax themes.
 
 Validate and export without opening the TUI:
 
@@ -35,10 +36,16 @@ Validate and export without opening the TUI:
 ./bin/yolodev theme validate themes/yolodev/placeholder.toml
 ./bin/yolodev theme export --format ghostty themes/yolodev/placeholder.toml
 ./bin/yolodev theme export --format ghostty --output /tmp/yolodev-ghostty themes/yolodev/placeholder.toml
+./bin/yolodev theme export --format codex --output /tmp/signal-grid.tmTheme themes/yolodev/signal-grid.toml
 ```
 
 Non-interactive export refuses to overwrite an existing destination. The app
-never edits or installs into your Ghostty configuration.
+never edits or installs into your Ghostty or Codex configuration.
+
+To use a Codex export, place the `.tmTheme` file under `$CODEX_HOME/themes`
+(normally `~/.codex/themes`) and select it with `/theme`. This changes syntax
+highlighting in code; the surrounding Codex interface still follows its own
+semantic colors and the terminal background.
 
 ## Canonical Format
 

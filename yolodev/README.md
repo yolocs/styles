@@ -9,9 +9,18 @@ yolodev theme validate FILE
 yolodev theme export --format FORMAT [--output PATH] FILE
 ```
 
-Ghostty is currently the only registered export format. The CLI is built with
-Cobra, and renderers are dispatched through an internal registry so formats can
-be added without changing command parsing.
+Ghostty and Codex TextMate themes are registered export formats. The CLI is
+built with Cobra, and renderers are dispatched through an internal registry so
+formats can be added without changing command parsing.
+
+For example, export Signal Grid for Codex without installing it automatically:
+
+```sh
+yolodev theme export --format codex --output signal-grid.tmTheme ../themes/yolodev/signal-grid.toml
+```
+
+Move the result under `$CODEX_HOME/themes` and select it with `/theme`. The
+export controls syntax highlighting, not the surrounding Codex interface.
 
 From the repository root, use `make build` to create `bin/yolodev` and `make
 run` to edit the placeholder theme.
